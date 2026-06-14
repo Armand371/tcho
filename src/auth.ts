@@ -3,73 +3,17 @@ import Google from "next-auth/providers/google";
 import type { GoogleProfile } from "next-auth/providers/google";
 
 import { env } from "@/env";
+import { isAllowedSignIn } from "@/lib/access";
+import {
+  isPastAbsoluteExpiry,
+  nowInSeconds,
+  SESSION_MAX_AGE_SECONDS,
+} from "@/lib/session-policy";
 
-/**
- * Access policy, extracted as a pure function so it can be exhaustively
- * table-tested (plan T2) without standing up Auth.js or Google.
- *
- * A user may sign in iff their email is verified AND either:
- *   - the account belongs to the allowed Workspace domain — proven by the `hd`
- *     claim AND the email's own domain (both must match; the email suffix alone
- *     is spoofable by consumer accounts using a vanity address), or
- *   - the email is on the break-glass `ADMIN_EMAILS` allowlist (the recovery
- *     path if domain gating misfires; design §9).
- *
- * "Belongs to the domain" means the allowed domain exactly OR a subdomain of it
- * (a Workspace owns all its subdomains, so `eng.example.com` is in `example.com`).
- * `endsWith("." + domain)` matches subdomains while rejecting look-alikes like
- * `example.com.evil.com` and `notexample.com`.
- *
- * `adminEmails` is expected pre-normalized (trimmed, lowercased) — `src/env.ts`
- * does that when parsing `ADMIN_EMAILS`.
- */
-export function isAllowedSignIn(params: {
-  email: string | null | undefined;
-  emailVerified: boolean | null | undefined;
-  hd: string | null | undefined;
-  allowedDomain: string;
-  adminEmails: readonly string[];
-}): boolean {
-  const { email, emailVerified, hd, allowedDomain, adminEmails } = params;
-
-  // Strict `=== true`: the claim is untrusted input and Google has historically
-  // sent it as a string; a bare `!emailVerified` would let "false" through.
-  if (emailVerified !== true) return false;
-
-  const normalizedEmail = email?.trim().toLowerCase();
-  if (!normalizedEmail) return false;
-
-  // Break-glass: an explicitly allowlisted address gets in regardless of domain.
-  if (adminEmails.includes(normalizedEmail)) return true;
-
-  const domain = allowedDomain.trim().toLowerCase();
-  if (!domain) return false;
-
-  const emailDomain = normalizedEmail.split("@").at(-1);
-
-  return inDomain(hd, domain) && inDomain(emailDomain, domain);
-}
-
-/** True if `candidate` is `domain` itself or a subdomain of it. */
-function inDomain(
-  candidate: string | null | undefined,
-  domain: string,
-): boolean {
-  const c = candidate?.trim().toLowerCase();
-  if (!c) return false;
-  return c === domain || c.endsWith(`.${domain}`);
-}
-
-// ~24h session. Statelessness means a JWT can't be revoked, so this window is a
-// security control: access changes (removed member, narrowed domain) take effect
-// only when the token expires and the user must re-authenticate (re-running the
-// signIn gate). NOTE: JWT sessions slide — Auth.js re-signs `exp = now + maxAge`
-// on every session read — so `maxAge` alone is only an *idle* timeout. The
-// `jwt` callback below stamps an *absolute* expiry to enforce the 24h cap even
-// for a continuously-active session.
-const SESSION_MAX_AGE_SECONDS = 24 * 60 * 60;
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
+// `auth` is intentionally not exported: the session-reading path goes through
+// `getSession`/`requireSession` (one verify implementation, plan Phase 2).
+// Re-export it only when a consumer needs it, to avoid a second verify path.
+export const { handlers, signIn, signOut } = NextAuth({
   // Auth.js v5 won't trust the forwarded host behind a deploy proxy without
   // this, and callback/redirect detection silently fails.
   trustHost: true,
@@ -105,16 +49,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, profile }) {
       // `profile` is only present at initial sign-in: stamp the absolute expiry.
       if (profile) {
-        token.absoluteExpiry =
-          Math.floor(Date.now() / 1000) + SESSION_MAX_AGE_SECONDS;
+        token.absoluteExpiry = nowInSeconds() + SESSION_MAX_AGE_SECONDS;
       }
       // Past the absolute cap, invalidate the token: returning null clears the
       // session cookie, forcing re-authentication and a fresh signIn re-gate.
       // This is what makes the cap hold even when activity keeps sliding `exp`.
-      if (
-        typeof token.absoluteExpiry === "number" &&
-        Math.floor(Date.now() / 1000) > token.absoluteExpiry
-      ) {
+      if (isPastAbsoluteExpiry(token.absoluteExpiry)) {
         return null;
       }
       return token;

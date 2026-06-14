@@ -247,11 +247,11 @@ Synthesized from this review. Checkbox as you ship.
   - Surfaced by: Outside voice #3 — required `AUTH_*` vars break secret-less `next build` in CI
   - Files: `src/env.ts`, `.github/workflows/ci.yml`
   - Verify: `SKIP_ENV_VALIDATION=1 npm run build` passes with no `.env.local`
-- [ ] **T2 (P1, human: ~30min / CC: ~5min)** — `src/proxy.ts` — read token directly via shared `verifyToken`, not the Auth.js middleware wrapper
+- [x] **T2 (P1, human: ~30min / CC: ~5min)** — `src/proxy.ts` — read token directly via shared `verifyToken`, not the Auth.js middleware wrapper ✅ done in Phase 2
   - Surfaced by: Architecture A1 — `middleware.ts`→`proxy.ts` rename risk
   - Files: `src/proxy.ts`, `src/lib/session.ts`
   - Verify: T1 proxy test (below) green
-- [ ] **T3 (P1, human: ~2h / CC: ~15min)** — auth tests — required proxy gate test + table-driven `signIn` test
+- [x] **T3 (P1, human: ~2h / CC: ~15min)** — auth tests — required proxy gate test + table-driven `signIn` test ✅ done in Phase 2
   - Surfaced by: Test review T1/T2 — security-critical paths were happy-path/optional
   - Files: `src/proxy.test.ts`, `src/auth.test.ts` (or colocated)
   - Verify: `npx vitest run` covers no-token redirect, allowlist reachability, and all signIn rows
