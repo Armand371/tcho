@@ -37,4 +37,9 @@ jobs:
         run: npm test
 
       - name: Build
+        # Required AUTH_* vars have no defaults, so a secret-less build would
+        # throw at env validation. Skip validation for the build only; real
+        # runtime still validates (see src/env.ts).
         run: npm run build
+        env:
+          SKIP_ENV_VALIDATION: "1"
