@@ -255,15 +255,15 @@ Synthesized from this review. Checkbox as you ship.
   - Surfaced by: Test review T1/T2 — security-critical paths were happy-path/optional
   - Files: `src/proxy.test.ts`, `src/auth.test.ts` (or colocated)
   - Verify: `npx vitest run` covers no-token redirect, allowlist reachability, and all signIn rows
-- [ ] **T4 (P2, human: ~20min / CC: ~5min)** — `src/auth.ts` — `ADMIN_EMAILS` break-glass branch in `signIn`
+- [x] **T4 (P2, human: ~20min / CC: ~5min)** — `src/auth.ts` — `ADMIN_EMAILS` break-glass branch in `signIn` ✅ done in Phase 1
   - Surfaced by: Architecture A2 — total-lockout risk if domain gating misfires
   - Files: `src/auth.ts`, `src/env.ts`
   - Verify: T2 admin row green
-- [ ] **T5 (P2, human: ~15min / CC: ~5min)** — `src/auth.ts` — `maxAge` ~24h sliding + documented posture
+- [x] **T5 (P2, human: ~15min / CC: ~5min)** — `src/auth.ts` — `maxAge` ~24h sliding + documented posture ✅ done in Phase 1
   - Surfaced by: Outside voice #6/#7 — stateless JWT can't be revoked
   - Files: `src/auth.ts`, `docs/design.md`
   - Verify: session cookie expiry ≤24h; design notes the window
-- [ ] **T6 (P2, human: ~10min / CC: ~3min)** — `src/auth.ts` — `trustHost: true` + `pages.error: /denied` + `email_verified` check
+- [x] **T6 (P2, human: ~10min / CC: ~3min)** — `src/auth.ts` — `trustHost: true` + `pages.error: /denied` + `email_verified` check ✅ done in Phase 1
   - Surfaced by: Outside voice #4, #8 + Architecture A3
   - Files: `src/auth.ts`
   - Verify: rejected login lands on `/denied`; unverified email denied (T2 row)

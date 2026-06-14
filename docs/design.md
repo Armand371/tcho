@@ -177,8 +177,12 @@ only in `.env.local` and the host's env settings.
   shared-cookie trick breaks across origins. We'd then need a token-passing
   scheme or move to a parent-domain cookie + subdomains. Documented as a fork in
   the road, not built now.
-- **Session lifetime / refresh.** Pick a JWT max-age and whether to silently
-  refresh. Default to a multi-day session for a low-friction family tool.
+- **Session lifetime / refresh.** Decided: **~24h sliding `maxAge`** (set in
+  `src/auth.ts`, Phase 1), refreshed at most hourly while active. This is a
+  security control, not just UX: a stateless JWT can't be revoked, so access
+  changes (removed member, narrowed domain) take effect only when the token
+  expires. Posture: **access changes take effect within 24h.** Tightening that
+  window requires a denylist or a DB (out of scope).
 - **Deployment target.** Stateless + Next.js fits Vercel or any Node host
   cleanly; left open per the infra decision.
 
