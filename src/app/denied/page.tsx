@@ -1,6 +1,6 @@
-import { signOut } from "@/auth";
 import { Button } from "@/components/button";
 import { PageShell } from "@/components/page-shell";
+import { signOutAction } from "@/lib/auth-actions";
 
 export const metadata = {
   title: "Sign-in problem",
@@ -35,12 +35,7 @@ export default async function DeniedPage({ searchParams }: Props) {
         <p className="text-lg leading-8 text-zinc-600 dark:text-zinc-400">
           {message}
         </p>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/" });
-          }}
-        >
+        <form action={signOutAction}>
           <Button type="submit" className="px-6">
             Sign out
           </Button>
